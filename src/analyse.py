@@ -1,6 +1,6 @@
+import argparse
 import hashlib
 import os
-import sys
 import time
 from pathlib import Path
 
@@ -9,6 +9,7 @@ from google import genai
 from google.genai import types
 from pydantic import ValidationError
 
+from format import format_session
 from prompt import ANALYSIS_PROMPT
 from schema import SessionAnalysis
 
@@ -83,8 +84,14 @@ def analyse_video(video_path: Path, model: str = "gemini-2.5-pro") -> SessionAna
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Usage: python src/analyse.py <video_path>", file=sys.stderr)
-        sys.exit(1)
-    analysis = analyse_video(Path(sys.argv[1]))
-    print(analysis.model_dump_json(indent=2))
+    parser = argparse.ArgumentParser(description="Analyse a basketball video with Gemini.")
+    parser.add_argument("video", type=Path, help="Path to the video file.")
+    parser.add_argument("--json", action="store_true", help="Print raw JSON instead of the formatted summary.")
+    args = parser.parse_args()
+
+    analysis = analyse_video(args.video)
+
+    if args.json:
+        print(analysis.model_dump_json(indent=2))
+    else:
+        print(format_session(analysis))
