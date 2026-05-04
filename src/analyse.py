@@ -37,7 +37,11 @@ def _wait_for_active(client: genai.Client, file_handle):
     return file_handle
 
 
-def analyse_video(video_path: Path, model: str = "gemini-2.5-pro") -> SessionAnalysis:
+def analyse_video(
+    video_path: Path,
+    model: str = "gemini-2.5-pro",
+    force: bool = False,
+) -> SessionAnalysis:
     video_path = Path(video_path)
     if not video_path.exists():
         raise FileNotFoundError(f"Video not found: {video_path}")
@@ -51,7 +55,7 @@ def analyse_video(video_path: Path, model: str = "gemini-2.5-pro") -> SessionAna
 
     digest = _hash_video(video_path)
     cache_path = CACHE_DIR / f"{digest}.json"
-    if cache_path.exists():
+    if cache_path.exists() and not force:
         return SessionAnalysis.model_validate_json(cache_path.read_text())
 
     client = genai.Client(api_key=api_key)
@@ -87,9 +91,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Analyse a basketball video with Gemini.")
     parser.add_argument("video", type=Path, help="Path to the video file.")
     parser.add_argument("--json", action="store_true", help="Print raw JSON instead of the formatted summary.")
+    parser.add_argument("--force", action="store_true", help="Bypass cached response and re-call Gemini; cache is still overwritten on success.")
     args = parser.parse_args()
 
-    analysis = analyse_video(args.video)
+    analysis = analyse_video(args.video, force=args.force)
 
     if args.json:
         print(analysis.model_dump_json(indent=2))
